@@ -34,7 +34,7 @@ export class LoginComponent implements OnInit {
 
   login(user: IUser) {
     console.log(user);
-    const defaultUser: IUser = { username: 'krishan', password: 'krishan123' };
+    const defaultUser: IUser = { username: 'jonathan', password: 'jonathan123' };
     if (user.username !== '' && user.password !== '') {
       if (user.username === defaultUser.username && user.password === defaultUser.password ) {
         // log the user in
