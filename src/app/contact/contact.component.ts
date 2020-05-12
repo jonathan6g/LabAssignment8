@@ -1,85 +1,124 @@
 import { Component, OnInit } from '@angular/core';
 import { Contact } from './contact.model';
-import { HttpClientModule, HttpClient } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
+import { LocalStorageService } from '../localStorageService';
+import { ActivatedRoute } from '@angular/router';
+import { IUser } from '../login/login.component';
+import { Router } from '@angular/router';
+import { ToastService } from '../toast/toast.service';
+
 
 @Component({
-  selector: 'contact',
+  selector: 'app-contact',
   templateUrl: './contact.component.html',
   styleUrls: ['./contact.component.css']
 })
 export class ContactComponent implements OnInit {
 
   contacts: Array<Contact> = [];
-  contactParams: string = '';
-  constructor(private http: HttpClient) { }
+  contactParams: string;
+  localStorageService: LocalStorageService<Contact>;
+  currentUser: IUser;
 
 
- async ngOnInit() {
-  this.loadContacts();
- }
+  constructor(
+    private http: HttpClient,
+    private activatedRoute: ActivatedRoute,
+    private router: Router,
+    private toasteService: ToastService
+  ) {
+    this.localStorageService = new LocalStorageService('contacts');
+  }
 
- async loadContacts(){
-  const savedContacts = this.getItemsFromLocalStorage('contacts');
-  if(savedContacts && savedContacts.length > 0) {
-    this.contacts = savedContacts;
-  } else {
-  this.contacts = await this.loadItemsFromFile();
-}
- }
+  async ngOnInit() {
+    const currentUser = this.localStorageService.getItemsFromLocalStorage('user');
+    if (currentUser == null) {
+      this.router.navigate(['']);
+    }
+    this.loadContacts();
+    this.activatedRoute.params.subscribe((data: IUser) => {
+    this.currentUser = data;
+    });
+  }
 
-  async loadItemsFromFile(){
+  async loadContacts() {
+    const savedContacts = this.getItemsFromLocalStorage('contacts');
+    if (savedContacts && savedContacts.length > 0) {
+      this.contacts = savedContacts;
+    } else {
+      this.contacts = await this.loadItemsFromFile();
+    }
+    this.sortByID(this.contacts);
+  }
+
+  async loadItemsFromFile() {
     const data: any = await this.http.get('assets/contacts.json').toPromise();
-    console.log('from LoadItemsFromFile data: ' , data);
+
     return data;
   }
 
-  addContact(){
-    this.contacts.unshift(new Contact({}));
-    console.log('this.contacts...', this.contacts);
+  addContact() {
+    this.contacts.unshift(new Contact({
+      id: null,
+      firstName: null,
+      lastName: null,
+      phone: null,
+      email: null
+    }));
   }
 
-  deleteContact(index: number){
-    console.log('from deleteContact index: ', index);
+  deleteContact(index: number) {
     this.contacts.splice(index, 1);
     this.saveItemsToLocalStorage(this.contacts);
   }
 
-  saveContact(contact: any){
-    console.log('from saveContact', contact);
-    contact.editing = false;
+  saveContact(contact: any) {
+    let hasError = false;
+    Object.keys(contact).forEach((key: any) => {
+      if (contact[key] == null) {
+        hasError = true;
+        this.toasteService.showToast('danger', `Save failed! Property ${key} must not be null`, 2000);
+      }
+    });
+    if (!hasError) {
+      contact.editing = false;
+      this.saveItemsToLocalStorage(this.contacts);
 
+    }
   }
 
   saveItemsToLocalStorage(contacts: Array<Contact>) {
     contacts = this.sortByID(contacts);
-    const savedContacts = localStorage.setItem('contacts', JSON.stringify(contacts));
-    return savedContacts;
+    return this.localStorageService.saveItemsToLocalStorage(contacts);
   }
 
   getItemsFromLocalStorage(key: string) {
-    const savedContacts = JSON.parse(localStorage.getItem(key));
-    return savedContacts;
+    // const savedContact = JSON.parse(localStorage.getItem(key));
+    return this.localStorageService.getItemsFromLocalStorage();
+
   }
 
   searchContact(params: string) {
-    console.log('from searchContact params: ', params);
     this.contacts = this.contacts.filter((item: Contact) => {
       const fullName = item.firstName + ' ' + item.lastName;
-      console.log('full name is --->', fullName);
-      console.log('items--->', item.firstName);
-      if(params === fullName || params === item.firstName || params === item.lastName) {
+      if (params === fullName || params === item.lastName || params === item.firstName) {
         return true;
       } else {
         return false;
       }
     });
-  }
 
+  }
   sortByID(contacts: Array<Contact>) {
-    contacts.sort((prevContact:Contact, presContact: Contact) => {
-  
+    contacts.sort((prevContact: Contact, presContact: Contact) => {
       return prevContact.id > presContact.id ? 1 : -1;
     });
     return contacts;
   }
+
+  logout() {
+    this.localStorageService.clearItemFromLocalStorage('user');
+    this.router.navigate(['']);
+  }
+
 }

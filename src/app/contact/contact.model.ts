@@ -1,4 +1,3 @@
-
 interface IContact {
     id?: number;
     firstName?: string;
@@ -9,7 +8,6 @@ interface IContact {
 }
 
 export class Contact {
-
     public id?: number;
     public firstName?: string;
     public lastName?: string;
@@ -22,17 +20,24 @@ export class Contact {
         Object.assign(this, contact);
     }
 
-    setState(contact: IContact){
-        if(contact == null || Object.keys(contact).length == 0) {
+    setState(contact: IContact) {
+
+        if ( contact == null || Object.keys(contact).length == 0) {
             return true;
+
         }
+
+
+
         let editing = false;
-        Object.keys(contact).forEach((key) =>{
-            console.log('from setState...', contact[key])
-            if(contact[key] == null) {
+        Object.keys(contact).forEach((key) => {
+            if (contact[key] == null ) {
                 editing = true;
-            }
+             }
+
         });
+
         return editing;
     }
+
 }
